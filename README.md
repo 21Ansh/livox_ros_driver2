@@ -118,12 +118,12 @@ Launch files of ROS are in the "ws_livox/src/livox_ros_driver2/launch_ROS1" dire
 
 | launch file name          | Description                                                  |
 | ------------------------- | ------------------------------------------------------------ |
-| rviz_HAP.launch   | Connect to HAP LiDAR device<br>Publish pointcloud2 format  data<br>Autoload rviz |
-| msg_HAP.launch     | Connect to HAP LiDAR device<br>Publish livox customized pointcloud data|
-| rviz_MID360.launch        | Connect to MID360 LiDAR device<br>Publish pointcloud2 format data <br>Autoload rviz|
-| msg_MID360.launch          | Connect to MID360 LiDAR device<br>Publish livox customized pointcloud data |
-| rviz_mixed.launch    | Connect to HAP and MID360 LiDAR device<br>Publish pointcloud2 format data <br>Autoload rviz|
-| msg_mixed.launch      | Connect to HAP and MID360 LiDAR device<br>Publish livox customized pointcloud data |
+| rviz_HAP.launch   | Connect to HAP LiDAR device<br>Publish pointcloud2 format  data<br>Autoload rviz<br>*Supports laser scan publishing when enabled in config* |
+| msg_HAP.launch     | Connect to HAP LiDAR device<br>Publish livox customized pointcloud data<br>*Supports laser scan publishing when enabled in config*|
+| rviz_MID360.launch        | Connect to MID360 LiDAR device<br>Publish pointcloud2 format data <br>Autoload rviz<br>*Supports laser scan publishing when enabled in config*|
+| msg_MID360.launch          | Connect to MID360 LiDAR device<br>Publish livox customized pointcloud data<br>*Supports laser scan publishing when enabled in config* |
+| rviz_mixed.launch    | Connect to HAP and MID360 LiDAR device<br>Publish pointcloud2 format data <br>Autoload rviz<br>*Supports laser scan publishing when enabled in config*|
+| msg_mixed.launch      | Connect to HAP and MID360 LiDAR device<br>Publish livox customized pointcloud data<br>*Supports laser scan publishing when enabled in config* |
 
 ### 3.2 Livox ros driver 2 internal main parameter configuration instructions
 
@@ -183,6 +183,42 @@ uint8   line            # laser number in lidar
 
 &ensp;&ensp;&ensp;&ensp;Please refer to the pcl :: PointXYZI data structure in the point_types.hpp file of the PCL library.
 
+### 3.3 Laser Scan Publishing
+
+Livox ROS Driver 2 now supports simultaneous publishing of laser scan messages alongside point cloud data. This feature converts the 3D point cloud to 2D laser scan data (`sensor_msgs/LaserScan`) for compatibility with existing navigation stacks and algorithms.
+
+#### 3.3.1 Laser Scan Topics
+
+When laser scan publishing is enabled, the driver publishes to the following topics:
+
+- **Single topic mode** (`multi_topic = 0`): `/livox/scan`
+- **Multi-topic mode** (`multi_topic = 1`): `/livox/scan_[LiDAR_IP]` (e.g., `/livox/scan_192_168_1_100`)
+
+#### 3.3.2 Laser Scan Message Format
+
+The published laser scan follows the standard ROS `sensor_msgs/LaserScan` format:
+
+```c
+std_msgs/Header header          # timestamp in the header is the acquisition time
+float32 angle_min               # start angle of the scan [rad]
+float32 angle_max               # end angle of the scan [rad]  
+float32 angle_increment         # angular distance between measurements [rad]
+float32 time_increment          # time between measurements [seconds]
+float32 scan_time               # time between scans [seconds]
+float32 range_min               # minimum range value [m]
+float32 range_max               # maximum range value [m]
+float32[] ranges                # range data [m] (Note: values < range_min or > range_max should be discarded)
+float32[] intensities           # intensity data (device-specific units)
+```
+
+#### 3.3.3 Point Cloud to Laser Scan Conversion
+
+The conversion process:
+1. **Height Filtering**: Only points within the specified height range are considered
+2. **Angle Segmentation**: Points are grouped into angular bins based on their azimuth angle
+3. **Range Selection**: For each angular bin, the closest valid point within the range limits is selected
+4. **Intensity Mapping**: The intensity value of the selected point is preserved
+
 ## 4. LiDAR config
 
 LiDAR Configurations (such as ip, port, data type... etc.) can be set via a json-style config file. Config files for single HAP, Mid360 and mixed-LiDARs are in the "config" folder. The parameter naming *'user_config_path'* in launch files indicates such json file path.
@@ -232,7 +268,17 @@ LiDAR Configurations (such as ip, port, data type... etc.) can be set via a json
         "z": 0
       }
     }
-  ]
+  ],
+  "laser_scan_config": {
+    "enable_scan": true,
+    "angle_min": -3.14159,
+    "angle_max": 3.14159,
+    "angle_increment": 0.006135,
+    "range_min": 0.05,
+    "range_max": 100.0,
+    "height_min": -2.0,
+    "height_max": 2.0
+  }
 }
 ```
 
@@ -246,6 +292,18 @@ The parameter attributes in the above json file are described in the following t
 | pattern_mode                | Int     | Space scan pattern<br>0 -- non-repeating scanning pattern mode<br>1 -- repeating scanning pattern mode <br>2 -- repeating scanning pattern mode (low scanning rate) | 0               |
 | blind_spot_set (Only for HAP LiDAR)                 | Int     | Set blind spot<br>Range from 50 cm to 200 cm               | 50               |
 | extrinsic_parameter |      | Set extrinsic parameter<br> The data types of "roll" "picth" "yaw" are float <br>  The data types of "x" "y" "z" are int<br>               |
+
+**Laser Scan configuration parameters**
+| Parameter                  | Type    | Description                                                  | Default         |
+| :------------------------- | ------- | ------------------------------------------------------------ | --------------- |
+| enable_scan                | Bool    | Enable/disable laser scan publishing<br>true -- Enable laser scan publishing<br>false -- Disable laser scan publishing | true |
+| angle_min                  | Float   | Start angle of the scan [rad]<br>Minimum angle in radians, typically -π to π | -3.14159 |
+| angle_max                  | Float   | End angle of the scan [rad]<br>Maximum angle in radians, typically -π to π | 3.14159 |
+| angle_increment            | Float   | Angular distance between measurements [rad]<br>Smaller values provide higher angular resolution | 0.006135 |
+| range_min                  | Float   | Minimum range value [m]<br>Points closer than this distance are ignored | 0.05 |
+| range_max                  | Float   | Maximum range value [m]<br>Points farther than this distance are ignored | 100.0 |
+| height_min                 | Float   | Minimum height of points to consider for laser scan [m]<br>Points below this height are filtered out | -2.0 |
+| height_max                 | Float   | Maximum height of points to consider for laser scan [m]<br>Points above this height are filtered out | 2.0 |
 
 For more infomation about the HAP config, please refer to:
 [HAP Config File Description](https://github.com/Livox-SDK/Livox-SDK2/wiki/hap-config-file-description)
@@ -327,9 +385,68 @@ For more infomation about the HAP config, please refer to:
         "z": 0
       }
     }
-  ]
+  ],
+  "laser_scan_config": {
+    "enable_scan": true,
+    "angle_min": -3.14159,
+    "angle_max": 3.14159,
+    "angle_increment": 0.006135,
+    "range_min": 0.05,
+    "range_max": 100.0,
+    "height_min": -2.0,
+    "height_max": 2.0
+  }
 }
 ```
+
+### 4.1 Using Laser Scan Feature
+
+The laser scan functionality allows you to publish 2D laser scan data simultaneously with 3D point cloud data. Here's how to configure and use it:
+
+#### 4.1.1 Enabling Laser Scan Publishing
+
+To enable laser scan publishing, add the `laser_scan_config` section to your JSON configuration file with `enable_scan: true`:
+
+```json
+"laser_scan_config": {
+  "enable_scan": true,
+  "angle_min": -3.14159,
+  "angle_max": 3.14159,
+  "angle_increment": 0.006135,
+  "range_min": 0.05,
+  "range_max": 100.0,
+  "height_min": -2.0,
+  "height_max": 2.0
+}
+```
+
+#### 4.1.2 Laser Scan Topic Names
+
+- **Single topic mode**: `/livox/scan`
+- **Multi-topic mode**: `/livox/scan_[LiDAR_IP]` (e.g., `/livox/scan_192_168_1_100`)
+
+#### 4.1.3 Integration with Navigation Stack
+
+The laser scan data is compatible with standard ROS navigation packages:
+
+```bash
+# View laser scan data in RViz
+rviz2 -d /path/to/your/rviz/config.rviz
+
+# Use with navigation stack (ROS2 example)
+ros2 launch nav2_bringup navigation_launch.py use_sim_time:=false
+
+# Use with gmapping (ROS1 example)  
+roslaunch gmapping slam_gmapping.launch scan:=/livox/scan
+```
+
+#### 4.1.4 Parameter Tuning Guidelines
+
+- **Height filtering (`height_min`, `height_max`)**: Adjust based on your robot height and ground plane. For ground robots, typical values are -0.5 to 0.5 meters.
+- **Range limits (`range_min`, `range_max`)**: Set according to your LiDAR specifications and application needs.
+- **Angular resolution (`angle_increment`)**: Smaller values provide finer resolution but increase computational load. Default 0.006135 rad ≈ 0.35° provides good balance.
+- **Angle range (`angle_min`, `angle_max`)**: Full 360° range is -π to π. Adjust for specific field-of-view requirements.
+
 3. when multiple nics on the host connect to multiple LiDARs, you need to add objects corresponding to different LiDARs to the lidar_configs array. Run different luanch files separately, and the following is an example of mixing lidar configuration file contents:
 
 **MID360_config1:**
@@ -543,3 +660,36 @@ Please add '/usr/local/lib' to the env LD_LIBRARY_PATH.
   export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib
   source ~/.bashrc
   ```
+
+### 6.3 Laser scan is not being published even though `enable_scan` is true?
+
+Check the following:
+
+1. **Verify configuration**: Ensure the `laser_scan_config` section is properly added to your JSON config file
+2. **Check topic names**: 
+   - Single topic mode: `/livox/scan`
+   - Multi-topic mode: `/livox/scan_[LiDAR_IP]`
+3. **Height filtering**: Adjust `height_min` and `height_max` values - if too restrictive, no points may pass the filter
+4. **Range filtering**: Check `range_min` and `range_max` values - ensure they match your LiDAR's capabilities and scene
+5. **View topics**: Use `rostopic list` (ROS1) or `ros2 topic list` (ROS2) to verify scan topics are being published
+
+### 6.4 Laser scan data seems incorrect or sparse?
+
+**Parameter tuning suggestions**:
+
+- **Sparse data**: Decrease `angle_increment` for higher angular resolution
+- **Too much noise**: Tighten `height_min`/`height_max` range to filter ground/ceiling points
+- **Missing close objects**: Reduce `range_min` value
+- **Missing distant objects**: Increase `range_max` value, but check LiDAR specifications
+
+**Example for indoor navigation**:
+```json
+"laser_scan_config": {
+  "enable_scan": true,
+  "height_min": -0.3,
+  "height_max": 0.3,
+  "range_min": 0.1,
+  "range_max": 25.0,
+  "angle_increment": 0.0087  // 0.5 degrees
+}
+```

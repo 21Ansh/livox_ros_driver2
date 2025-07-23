@@ -37,6 +37,21 @@
         "z": 0
       }
     }
-  ]
+  ],
+  "laser_scan_config": {
+    "enable_scan": true,
+    "min_height": -1.0,
+    "max_height": 1.0,
+    "angle_min": -3.14159265359,
+    "angle_max": 3.14159265359,
+    "angle_increment": 0.017453292519943295,
+    "scan_time": 0.1,
+    "range_min": 0.45,
+    "range_max": 100.0,
+    "use_inf": true,
+    "inf_epsilon": 1.0,
+    "target_frame": "",
+    "transform_tolerance": 0.01
+  }
 }
 

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.5]
+### Added
+- **Point Cloud to Laser Scan Conversion**: Added integrated laser scan publishing functionality that simultaneously converts and publishes sensor_msgs/LaserScan messages alongside point cloud data.
+- **Configurable Laser Scan Parameters**: All laser scan conversion parameters (angle range, height range, range limits, resolution) are configurable through JSON configuration files.
+- **Multi-topic Laser Scan Support**: Laser scan topics follow the same multi-topic pattern as point clouds (e.g., `livox/scan_192_168_1_100` for individual LiDAR units).
+- **Enable/Disable Control**: Laser scan publishing can be enabled or disabled per LiDAR through the `enable_scan` parameter in configuration files.
+
 ## [1.2.4]
 ### Fixed
 - Optimize framing performance

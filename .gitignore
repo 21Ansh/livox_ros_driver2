@@ -1,4 +1,50 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+*egg-info*
+
+.pyc
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Build folder
+**/build/*
+**/install/*
+_build/
+build-output/
+build-out/
+cmake-out
+#**/docs/*
+**/html/*
+**/xml/*
+# Backup files for Emacs
+*~
+#
+*.swp
 .vscode
-build
-package.xml
-__pycache__
+*.bak
+*.pyc
+**/.history/*
