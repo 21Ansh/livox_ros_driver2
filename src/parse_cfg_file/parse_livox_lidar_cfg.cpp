@@ -77,6 +77,11 @@ bool LivoxLidarConfigParser::ParseUserConfigs(const rapidjson::Document &doc,
     } else {
       user_config.pcl_data_type = static_cast<int8_t>(config["pcl_data_type"].GetInt());
     }
+    if (!config.HasMember("frame_id")) {
+      user_config.frame_id = "";
+    } else {
+      user_config.frame_id = std::string(config["frame_id"].GetString());
+    }
     if (!config.HasMember("pattern_mode")) {
       user_config.pattern_mode = -1;
     } else {

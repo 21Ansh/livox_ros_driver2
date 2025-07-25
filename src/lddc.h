@@ -106,7 +106,7 @@ private:
   void PollingLidarPointCloudData(uint8_t index, LidarDevice *lidar);
   void PollingLidarImuData(uint8_t index, LidarDevice *lidar);
 
-  void PublishPointcloud2(LidarDataQueue *queue, uint8_t index);
+  void PublishPointcloud2(LidarDataQueue *queue, uint8_t index, const std::string &frame_id);
   void PublishCustomPointcloud(LidarDataQueue *queue, uint8_t index);
   void PublishPclMsg(LidarDataQueue *queue, uint8_t index);
 
@@ -116,9 +116,9 @@ private:
   void PublishLaserScan(const std::vector<PointXyzlt> &points,
                         const uint64_t timestamp, const uint8_t index);
 
-  void InitPointcloud2MsgHeader(PointCloud2 &cloud);
-  void InitPointcloud2Msg(const StoragePacket &pkg, PointCloud2 &cloud,
-                          uint64_t &timestamp);
+  void InitPointcloud2MsgHeader(PointCloud2 &cloud, const std::string &frame_id);
+  void InitPointcloud2Msg(const StoragePacket &pkg, PointCloud2 &cloud, 
+                          uint64_t &timestamp, const std::string &frame_id);
   void PublishPointcloud2Data(const uint8_t index, uint64_t timestamp,
                               const PointCloud2 &cloud);
 
